@@ -23,7 +23,7 @@ yt_dlp = None
 imageio_ffmpeg = None
 
 
-# -------------- 1) Instalacja brakujących bibliotek --------------
+# ========== 1 Instalacja brakujących bibliotek==========
 def instaluj_biblioteki(log_func=None):
     """
     Sprawdza, czy zainstalowane są pakiety `yt-dlp` i `imageio-ffmpeg`.
@@ -37,7 +37,7 @@ def instaluj_biblioteki(log_func=None):
         else:
             print(msg)
 
-    # 1a) Sprawdź / zainstaluj yt-dlp
+    # 1a Sprawdź / zainstaluj yt-dlp
     try:
         import yt_dlp  # noqa: F401
         _log("Pakiet yt-dlp jest zainstalowany.")
@@ -46,7 +46,7 @@ def instaluj_biblioteki(log_func=None):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "yt-dlp"])
         _log("yt-dlp zainstalowany pomyślnie.")
 
-    # 1b) Sprawdź / zainstaluj imageio-ffmpeg
+    # 1b Sprawdź / zainstaluj imageio-ffmpeg
     try:
         import imageio_ffmpeg  # noqa: F401
         _log("Pakiet imageio-ffmpeg jest zainstalowany.")
@@ -55,7 +55,7 @@ def instaluj_biblioteki(log_func=None):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "imageio-ffmpeg"])
         _log("imageio-ffmpeg zainstalowany pomyślnie.")
 
-    # 1c) Sprawdź / zainstaluj requests (choć zwykle jest już zainstalowany)
+    # 1c Sprawdź / zainstaluj requests
     try:
         import requests  # noqa: F401
         _log("Pakiet requests jest zainstalowany.")
@@ -64,7 +64,7 @@ def instaluj_biblioteki(log_func=None):
         subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
         _log("requests zainstalowany pomyślnie.")
 
-    # 1d) Po instalacji – importujemy globalnie, aby inne funkcje mogły korzystać
+    # 1d Po instalacji – importujemy globalnie
     global yt_dlp, imageio_ffmpeg
     try:
         import yt_dlp as _yt
@@ -81,7 +81,7 @@ def instaluj_biblioteki(log_func=None):
     _log("Instalacja i import pakietów zakończona.")
 
 
-# -------------- 2) Pobranie ścieżki do binarki FFmpeg --------------
+# ========== 2 Pobranie ścieżki do binarki FFmpeg ==========
 def pobierz_sciezke_ffmpeg():
     """
     Korzysta z imageio_ffmpeg.get_ffmpeg_exe(), aby zwrócić ścieżkę do pliku ffmpeg.exe.
@@ -93,7 +93,7 @@ def pobierz_sciezke_ffmpeg():
         raise RuntimeError("Moduł imageio_ffmpeg nie jest zainstalowany.")
 
 
-# -------------- 3) Pobieranie wideo (MP4) z ustawieniem mtime --------------
+# ========== 3 Pobieranie wideo (MP4) z ustawieniem mtime ==========
 def pobierz_wideo_mp4(
     url: str,
     ffmpeg_exe: str,
@@ -123,7 +123,6 @@ def pobierz_wideo_mp4(
         else:
             print(msg)
 
-    # Upewnij się, że yt_dlp jest zaimportowane
     global yt_dlp
     if yt_dlp is None:
         raise RuntimeError("Moduł yt_dlp nie jest zaimportowany. Upewnij się, że instaluj_biblioteki() został wywołany.")
@@ -133,7 +132,7 @@ def pobierz_wideo_mp4(
     _log(f" → ffmpeg_location: {ffmpeg_exe}")
 
     def progress_hook(d):
-        # Sprawdź, czy anulowano pobieranie
+        # Czy anulowano pobieranie
         if cancel_flag and cancel_flag():
             raise Exception("Pobieranie anulowane przez użytkownika")
 
@@ -178,7 +177,7 @@ def pobierz_wideo_mp4(
             _log(f"Nieoczekiwany błąd: {e}")
 
 
-# -------------- 4) Pobieranie audio (MP3) z ustawieniem mtime --------------
+# ========== 4 Pobieranie audio (MP3) z ustawieniem mtime ==========
 def pobierz_audio_mp3(
     url: str,
     ffmpeg_exe: str,
@@ -217,7 +216,7 @@ def pobierz_audio_mp3(
     _log(f" → ffmpeg_location: {ffmpeg_exe}")
 
     def progress_hook(d):
-        # Sprawdź, czy anulowano pobieranie
+        # Czy anulowano pobieranie
         if cancel_flag and cancel_flag():
             raise Exception("Pobieranie anulowane przez użytkownika")
 
@@ -261,7 +260,7 @@ def pobierz_audio_mp3(
             _log(f"Nieoczekiwany błąd: {e}")
 
 
-# -------------- 5) Pobieranie URL miniatury --------------
+# ========== 5 Pobieranie URL miniatury ==========
 def pobierz_miniaturke(url: str, log_func=None):
     """
     Pobiera URL miniaturki (maxresdefault lub hqdefault).
@@ -272,7 +271,7 @@ def pobierz_miniaturke(url: str, log_func=None):
         if video_id:
             thumbnail_url = f"https://i.ytimg.com/vi/{video_id}/maxresdefault.jpg"
 
-            # Sprawdź, czy maxresdefault istnieje
+            # Czy maxresdefault istnieje
             try:
                 response = requests.head(thumbnail_url, timeout=3)
                 if response.status_code == 200:

@@ -1,17 +1,20 @@
 # ui_mainwindow.py
+
 import os
 import time
+
 import requests
+import yt_dlp
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon, QTextCursor, QPixmap
+from PyQt6.QtGui import QFont, QPixmap, QTextCursor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QTextEdit, QFileDialog, QRadioButton,
-    QProgressBar, QMessageBox
+    QProgressBar, QMessageBox, QComboBox
 )
 
-from threads import InstallThread, DownloadThread
+from threads import InstallThread, DownloadThread, FormatFetchThread
 from theme import apply_dark_theme
 from ytdown_core import pobierz_miniaturke, pobierz_sciezke_ffmpeg
 
@@ -22,18 +25,20 @@ class YouTubeDownloader(QWidget):
         self.current_url = ""
         self.ffmpeg_path = ""
         self.download_type = "mp4"
+        # Lista dostępnych formatów
+        self.available_formats = []
 
         self.setup_ui()
         self.setup_connections()
         self.set_default_download_folder()
-        # Proces instalacji bibliotek ruszy dopiero po wywołaniu z main.py
 
     def setup_ui(self):
+        """Konfiguracja interfejsu użytkownika"""
         self.setWindowTitle("YouTube Downloader")
         self.setGeometry(300, 300, 800, 600)
         self.setMinimumSize(700, 500)
 
-        apply_dark_theme(self)  # stosujemy ciemny motyw
+        apply_dark_theme(self)
 
         title_font = QFont("Segoe UI", 16, QFont.Weight.Bold)
         section_font = QFont("Segoe UI", 10, QFont.Weight.Bold)
@@ -43,13 +48,14 @@ class YouTubeDownloader(QWidget):
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
+        # ==========Nagłówek==========
         header = QLabel("YouTube Downloader")
         header.setFont(title_font)
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("color: #61afef; padding: 10px;")
         main_layout.addWidget(header)
 
-        # ─── Sekcja URL ───────────────────────────────────────────────────────
+        # ==========Sekcja URL + Miniaturka==========
         url_layout = QVBoxLayout()
         url_layout.setSpacing(5)
 
@@ -75,7 +81,25 @@ class YouTubeDownloader(QWidget):
 
         main_layout.addLayout(url_layout)
 
-        # ─── Sekcja typu pobierania ───────────────────────────────────────────
+        # ==========Dropdown z jakoscia==========
+        quality_layout = QVBoxLayout()
+        quality_layout.setSpacing(5)
+
+        quality_label = QLabel("Jakość wideo:")
+        quality_label.setFont(section_font)
+        quality_layout.addWidget(quality_label)
+
+        self.quality_combo = QComboBox()
+        self.quality_combo.setFont(normal_font)
+        self.quality_combo.addItem("Brak (brak URL)")
+        self.quality_combo.setEnabled(False)
+
+        self.quality_combo.setMaximumWidth(200)
+        quality_layout.addWidget(self.quality_combo, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        main_layout.addLayout(quality_layout)
+
+        # ==========Sekcja typu pobierania ==========
         type_layout = QVBoxLayout()
         type_layout.setSpacing(5)
 
@@ -97,7 +121,7 @@ class YouTubeDownloader(QWidget):
 
         main_layout.addLayout(type_layout)
 
-        # ─── Sekcja folderu docelowego ───────────────────────────────────────
+        # ==========Sekcja folderu docelowego==========
         folder_layout = QVBoxLayout()
         folder_layout.setSpacing(5)
 
@@ -118,7 +142,7 @@ class YouTubeDownloader(QWidget):
 
         main_layout.addLayout(folder_layout)
 
-        # ─── Pasek postępu i przyciski ────────────────────────────────────────
+        # ==========Pasek postępu i przyciski==========
         self.progress_bar = QProgressBar()
         self.progress_bar.setFont(normal_font)
         self.progress_bar.setRange(0, 100)
@@ -150,7 +174,7 @@ class YouTubeDownloader(QWidget):
 
         main_layout.addLayout(buttons_layout)
 
-        # ─── Konsola logów ────────────────────────────────────────────────────
+        # ==========Konsola logów==========
         log_layout = QVBoxLayout()
         log_layout.setSpacing(5)
 
@@ -163,22 +187,25 @@ class YouTubeDownloader(QWidget):
         self.log_output.setReadOnly(True)
         log_layout.addWidget(self.log_output)
 
-        main_layout.addLayout(log_layout, 1)  # rozciągnięcie
-
-        # ─── Status bar (tu: tylko placeholder, właściwy QStatusBar jest w main.py) ─
-        # W tej wersji QWidget nie ma wbudowanego status baru, ale logi wyświetlamy
-        # w polu tekstowym. StatusBar można dodać, gdybyśmy dziedziczyli QMainWindow.
+        main_layout.addLayout(log_layout, 1)
 
     def setup_connections(self):
+        """Konfiguracja sygnałów i slotów"""
         self.type_mp4.toggled.connect(lambda: self.set_download_type("mp4"))
         self.type_mp3.toggled.connect(lambda: self.set_download_type("mp3"))
         self.browse_button.clicked.connect(self.browse_folder)
         self.download_button.clicked.connect(self.start_download)
         self.cancel_button.clicked.connect(self.cancel_download)
         self.clear_button.clicked.connect(self.clear_logs)
-        self.url_input.textChanged.connect(self.check_url_and_fetch_thumbnail)
+        self.url_input.textChanged.connect(self.on_url_changed)
 
     def set_default_download_folder(self):
+        """
+        Ustawia domyślny folder pobierania:
+        1) ~/Pobrane
+        2) ~/Downloads
+        3) katalog domowy (~)
+        """
         home = os.path.expanduser("~")
         pobrane = os.path.join(home, "Pobrane")
         downloads = os.path.join(home, "Downloads")
@@ -193,66 +220,95 @@ class YouTubeDownloader(QWidget):
         self.folder_input.setText(default_folder)
         self.log_message(f"Domyślny folder pobierania: {default_folder}")
 
-    def cancel_download(self):
-        if hasattr(self, 'download_thread') and self.download_thread.isRunning():
-            self.download_thread.cancel()
-            self.log_message("Wysyłanie żądania anulowania…")
-            self.cancel_button.setEnabled(False)
+    def on_url_changed(self, url_text: str):
+        """
+        Jeśli URL wygląda na YouTube, pobierz miniaturkę i asynchronicznie listę formatów.
+        W przeciwnym razie zablokuj dropdown.
+        """
+        self.current_url = url_text.strip()
 
-    def check_url_and_fetch_thumbnail(self, url):
-        self.current_url = url
-        try:
-            if "youtube.com/watch?v=" in url or "youtu.be/" in url:
-                self.fetch_thumbnail(url)
-            else:
-                self.thumbnail_label.setText("Podaj pełny URL filmu YouTube")
-                self.thumbnail_label.setPixmap(QPixmap())
-        except Exception as e:
-            self.log_message(f"Krytyczny błąd: {str(e)}")
+        # Reset combobox
+        self.quality_combo.clear()
+        self.quality_combo.addItem("Ładowanie formatów…")
+        self.quality_combo.setEnabled(False)
+        self.available_formats = []
 
-    def fetch_thumbnail(self, url):
+        if "youtube.com/watch?v=" in self.current_url or "youtu.be/" in self.current_url:
+            # 1) Pobierz miniaturkę
+            self.fetch_thumbnail(self.current_url)
+            # 2) Uruchom FormatFetchThread
+            self.fetch_thread = FormatFetchThread(self.current_url)
+            self.fetch_thread.formats_ready.connect(self.on_formats_ready)
+            self.fetch_thread.error.connect(self.on_formats_error)
+            self.fetch_thread.start()
+        else:
+            self.thumbnail_label.setText("Podaj pełny URL filmu YouTube")
+            self.thumbnail_label.setPixmap(QPixmap())
+            self.quality_combo.clear()
+            self.quality_combo.addItem("Brak (brak URL)")
+            self.quality_combo.setEnabled(False)
+
+    def on_formats_ready(self, formats_list):
+        """
+        Gdy FormatFetchThreads zwróci listę [(format_id, label), ...], wypełniamy combobox.
+        """
+        self.available_formats = formats_list
+        self.quality_combo.clear()
+        for fmt_id, label in formats_list:
+            self.quality_combo.addItem(label, userData=fmt_id)
+
+        self.quality_combo.setEnabled(True)
+        self.quality_combo.setCurrentIndex(0)
+        self.log_message("Formaty pobrane pomyślnie.")
+
+    def on_formats_error(self, err_msg):
+        """Gdy pobieranie formatów się nie powiedzie"""
+        self.log_message(f"Błąd pobierania formatów: {err_msg}")
+        self.quality_combo.clear()
+        self.quality_combo.addItem("Brak (błąd pobierania)")
+        self.quality_combo.setEnabled(False)
+
+    def fetch_thumbnail(self, url: str):
+        """Pobiera miniaturkę i wyświetla ją"""
         self.thumbnail_label.setText("Pobieranie miniatury…")
         try:
             thumb_url = pobierz_miniaturke(url)
             if thumb_url:
                 self.log_message(f"Pobrano URL miniatury: {thumb_url}")
-                self.download_thumbnail_image(thumb_url)
+                response = requests.get(thumb_url, timeout=5)
+                response.raise_for_status()
+                pixmap = QPixmap()
+                pixmap.loadFromData(response.content)
+                if not pixmap.isNull():
+                    pixmap = pixmap.scaled(
+                        320, 180,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    self.thumbnail_label.setPixmap(pixmap)
+                else:
+                    self.thumbnail_label.setText("Błąd ładowania miniatury")
             else:
                 self.thumbnail_label.setText("Nie znaleziono miniatury")
                 self.log_message("Nie udało się pobrać miniatury")
         except Exception as e:
-            self.log_message(f"Błąd pobierania miniatury: {e}")
-
-    def download_thumbnail_image(self, thumb_url):
-        try:
-            response = requests.get(thumb_url, timeout=5)
-            response.raise_for_status()
-            pixmap = QPixmap()
-            pixmap.loadFromData(response.content)
-            if not pixmap.isNull():
-                pixmap = pixmap.scaled(
-                    320, 180,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                self.thumbnail_label.setPixmap(pixmap)
-            else:
-                self.thumbnail_label.setText("Błąd ładowania miniatury")
-        except Exception as e:
-            self.log_message(f"Błąd pobierania miniatury: {e}")
             self.thumbnail_label.setText("Błąd pobierania miniatury")
+            self.log_message(f"Błąd pobierania miniatury: {e}")
 
-    def log_message(self, message):
-        ts = time.strftime("%H:%M:%S")
-        text = f"[{ts}] {message}"
-        self.log_output.append(text)
+    def log_message(self, message: str):
+        """Wyświetla komunikat w konsoli logów"""
+        timestamp = time.strftime("%H:%M:%S")
+        formatted_msg = f"[{timestamp}] {message}"
+        self.log_output.append(formatted_msg)
         self.log_output.moveCursor(QTextCursor.MoveOperation.End)
 
-    def set_download_type(self, download_type):
+    def set_download_type(self, download_type: str):
+        """Ustawia typ pobierania (mp4/mp3)"""
         self.download_type = download_type
         self.log_message(f"Wybrano typ: {download_type.upper()}")
 
     def browse_folder(self):
+        """Otwiera dialog wyboru folderu"""
         folder = QFileDialog.getExistingDirectory(
             self, "Wybierz folder docelowy", os.path.expanduser("~")
         )
@@ -261,10 +317,19 @@ class YouTubeDownloader(QWidget):
             self.log_message(f"Wybrano folder: {folder}")
 
     def clear_logs(self):
+        """Czyści konsolę logów"""
         self.log_output.clear()
         self.log_message("Logi wyczyszczone")
 
+    def cancel_download(self):
+        """Anuluje bieżące pobieranie"""
+        if hasattr(self, 'download_thread') and self.download_thread.isRunning():
+            self.download_thread.cancel()
+            self.log_message("Wysyłanie żądania anulowania…")
+            self.cancel_button.setEnabled(False)
+
     def start_download(self):
+        """Rozpoczyna pobieranie w wybranym formacie (może to być muxed lub video+audio)"""
         url = self.url_input.text().strip()
         folder = self.folder_input.text().strip()
 
@@ -274,47 +339,75 @@ class YouTubeDownloader(QWidget):
         if not os.path.isdir(folder):
             QMessageBox.warning(self, "Błąd", "Folder docelowy nie istnieje")
             return
-        if not self.ffmpeg_path or not os.path.exists(self.ffmpeg_path):
-            QMessageBox.warning(self, "Błąd", "FFmpeg nie jest dostępny")
-            return
         if "youtube.com" not in url and "youtu.be" not in url:
             QMessageBox.warning(self, "Błąd", "Nieprawidłowy URL YouTube")
             return
 
+        # Sprawdź ffmpeg
+        if not self.ffmpeg_path or not os.path.exists(self.ffmpeg_path):
+            QMessageBox.warning(
+                self,
+                "Uwaga",
+                "FFmpeg nie zostało odnalezione. Łączenie (jeśli video-only) może się nie powieść. "
+                "Zainstaluj ffmpeg lub `pip install imageio-ffmpeg`."
+            )
+            self.log_message("Ostrzeżenie: FFmpeg nie odnalezione.")
+
+        if self.download_type == "mp4":
+            if not (self.quality_combo.isEnabled() and self.quality_combo.currentIndex() >= 0):
+                QMessageBox.warning(self, "Błąd", "Brak dostępnych formatów do pobrania")
+                return
+            format_id = self.quality_combo.currentData()
+        else:
+            format_id = None
+
+        # Blokujemy UI i ruszamy wątek
         self.set_ui_enabled(False)
         self.log_message(f"Rozpoczynanie pobierania ({self.download_type})…")
         self.progress_bar.setValue(0)
 
-        # Tworzymy i konfigurujemy wątek pobierania
         self.download_thread = DownloadThread(
-            url, self.ffmpeg_path, folder, self.download_type, self.log_message
+            url,
+            self.ffmpeg_path,
+            folder,
+            self.download_type,
+            format_id,
+            self.log_message
         )
         self.download_thread.log_signal.connect(self.log_message)
-        self.download_thread.progress_signal.connect(self.update_progress)
+        self.download_thread.progress_signal.connect(lambda percent: self.update_progress(percent))
         self.download_thread.finished_signal.connect(self.on_download_finished)
         self.download_thread.start()
 
-    def update_progress(self, value):
-        val = int(value)
-        if val < 0: val = 0
-        if val > 100: val = 100
-        self.progress_bar.setValue(val)
-        if 0 < val < 100:
-            self.download_button.setText(f"Pobieranie… {val}%")
+    def update_progress(self, value: float):
+        """Aktualizuje pasek postępu"""
+        progress_value = int(value)
+        if progress_value < 0:
+            progress_value = 0
+        elif progress_value > 100:
+            progress_value = 100
+
+        self.progress_bar.setValue(progress_value)
+        if 0 < progress_value < 100:
+            self.download_button.setText(f"Pobieranie… {progress_value}%")
         else:
             self.download_button.setText("Rozpocznij pobieranie")
 
-    def set_ui_enabled(self, enabled):
+    def set_ui_enabled(self, enabled: bool):
+        """Włącza/wyłącza UI podczas pobierania"""
         self.url_input.setEnabled(enabled)
         self.type_mp4.setEnabled(enabled)
         self.type_mp3.setEnabled(enabled)
+        self.quality_combo.setEnabled(enabled and self.quality_combo.count() > 0)
         self.browse_button.setEnabled(enabled)
         self.download_button.setEnabled(enabled)
         self.clear_button.setEnabled(enabled)
         self.cancel_button.setEnabled(not enabled)
+
         self.download_button.setText("Pobieranie…" if not enabled else "Rozpocznij pobieranie")
 
     def on_download_finished(self, success: bool, error_msg: str):
+        """Obsługa zakończenia pobierania"""
         self.set_ui_enabled(True)
         if success:
             self.progress_bar.setValue(100)
@@ -327,5 +420,6 @@ class YouTubeDownloader(QWidget):
             if "anulowane" not in error_msg.lower():
                 QMessageBox.critical(self, "Błąd", f"Pobieranie nie powiodło się:\n{error_msg}")
 
-    def set_ffmpeg_path(self, path):
+    def set_ffmpeg_path(self, path: str):
+        """Ustawia ścieżkę do ffmpeg po instalacji"""
         self.ffmpeg_path = path
