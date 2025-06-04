@@ -45,8 +45,6 @@ def instaluj_biblioteki(log_func=None):
 
     # Po instalacji – importujemy globalnie, aby inne funkcje w tym module mogły korzystać
     global yt_dlp, imageio_ffmpeg
-    import yt_dlp
-    import imageio_ffmpeg
     _log("Instalacja i import pakietów zakończona.")
 
 

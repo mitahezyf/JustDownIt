@@ -10,13 +10,14 @@ Wymagane biblioteki: PyQt6
 
 import os
 import sys
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QTextEdit, QFileDialog, QButtonGroup, QRadioButton,
-    QProgressBar, QFrame, QMessageBox, QSizePolicy
-)
+
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon, QTextCursor, QPalette, QColor
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QLineEdit, QPushButton, QTextEdit, QFileDialog, QRadioButton,
+    QProgressBar, QMessageBox
+)
 
 # Import modułu core
 from ytdown_core import (
@@ -427,8 +428,8 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
 
     # Ustaw ikonę aplikacji (wymaga pliku icon.png)
-    if os.path.exists("icon.png"):
-        app.setWindowIcon(QIcon("icon.png"))
+    if os.path.exists("ytdownico.png"):
+        app.setWindowIcon(QIcon("ytdownico.png"))
 
     window = YouTubeDownloader()
     window.show()
