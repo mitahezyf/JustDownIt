@@ -42,11 +42,11 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    if os.path.exists("ytdownico.png"):
-        app.setWindowIcon(QIcon("ytdownico.png"))
+    if os.path.exists("ytdownico.ico"):
+        app.setWindowIcon(QIcon("ytdownico.ico"))
 
     window = MainWindow()
-    window.setWindowTitle("YouTube Downloader")
+    window.setWindowTitle("JustDownIt")
     window.resize(800, 600)
     window.show()
 

@@ -34,7 +34,7 @@ class YouTubeDownloader(QWidget):
 
     def setup_ui(self):
         """Konfiguracja interfejsu użytkownika"""
-        self.setWindowTitle("YouTube Downloader")
+        self.setWindowTitle("JustDownIt")
         self.setGeometry(300, 300, 800, 600)
         self.setMinimumSize(700, 500)
 
@@ -49,7 +49,7 @@ class YouTubeDownloader(QWidget):
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # ==========Nagłówek==========
-        header = QLabel("YouTube Downloader")
+        header = QLabel("JustDownIt by Mitahezyf")
         header.setFont(title_font)
         header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("color: #61afef; padding: 10px;")
