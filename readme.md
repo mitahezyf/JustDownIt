@@ -75,7 +75,7 @@ Wykonaj poniższe kroki, aby skonfigurować i uruchomić JustDownIt na swoim kom
 * `theme.py`: Dedykowany moduł do stosowania ciemnego motywu wizualnego aplikacji, zarządzający ustawieniami `QPalette` PyQt6 i niestandardowymi arkuszami stylów.
 * `ytdownico.ico`: Plik ikony aplikacji, zapewniający tożsamość marki.
 
-## Dalszy rozwój 
+## Dalszy rozwój
 Program wciąż jest w trakcie rozwoju więc możliwe są błędy. W neidalekiej przyszłości planowane jest dodanie kolejnych funkcjonalności takich jak kolejkowanie, wybór formatu wyjściowego, motywy, możliwość ustawienia ogranicznika pobierania (obecnie program ogranicza do 25MB/s)
 
 

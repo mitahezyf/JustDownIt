@@ -40,6 +40,7 @@ def instaluj_biblioteki(log_func=None):
     # 1a Sprawdź / zainstaluj yt-dlp
     try:
         import yt_dlp  # noqa: F401
+
         _log("Pakiet yt-dlp jest zainstalowany.")
     except ImportError:
         _log("Instalowanie yt-dlp...")
@@ -49,15 +50,19 @@ def instaluj_biblioteki(log_func=None):
     # 1b Sprawdź / zainstaluj imageio-ffmpeg
     try:
         import imageio_ffmpeg  # noqa: F401
+
         _log("Pakiet imageio-ffmpeg jest zainstalowany.")
     except ImportError:
         _log("Instalowanie imageio-ffmpeg...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "imageio-ffmpeg"])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "imageio-ffmpeg"]
+        )
         _log("imageio-ffmpeg zainstalowany pomyślnie.")
 
     # 1c Sprawdź / zainstaluj requests
     try:
         import requests  # noqa: F401
+
         _log("Pakiet requests jest zainstalowany.")
     except ImportError:
         _log("Instalowanie requests...")
@@ -68,12 +73,14 @@ def instaluj_biblioteki(log_func=None):
     global yt_dlp, imageio_ffmpeg
     try:
         import yt_dlp as _yt
+
         yt_dlp = _yt
     except ImportError:
         _log("Uwaga: Nie udało się zaimportować yt_dlp pomimo instalacji!")
 
     try:
         import imageio_ffmpeg as _ff
+
         imageio_ffmpeg = _ff
     except ImportError:
         _log("Uwaga: Nie udało się zaimportować imageio_ffmpeg pomimo instalacji!")
@@ -88,6 +95,7 @@ def pobierz_sciezke_ffmpeg():
     """
     try:
         import imageio_ffmpeg
+
         return imageio_ffmpeg.get_ffmpeg_exe()
     except ImportError:
         raise RuntimeError("Moduł imageio_ffmpeg nie jest zainstalowany.")
@@ -101,7 +109,7 @@ def pobierz_wideo_mp4(
     log_func=None,
     proxy=None,
     progress_func=None,
-    cancel_flag=None
+    cancel_flag=None,
 ):
     """
     Pobiera wideo z YouTube w formacie MP4.
@@ -125,7 +133,9 @@ def pobierz_wideo_mp4(
 
     global yt_dlp
     if yt_dlp is None:
-        raise RuntimeError("Moduł yt_dlp nie jest zaimportowany. Upewnij się, że instaluj_biblioteki() został wywołany.")
+        raise RuntimeError(
+            "Moduł yt_dlp nie jest zaimportowany. Upewnij się, że instaluj_biblioteki() został wywołany."
+        )
 
     dokladna_sciezka = os.path.join(folder_docelowy, "%(title)s.%(ext)s")
     _log(f" → outtmpl: {dokladna_sciezka}")
@@ -136,10 +146,10 @@ def pobierz_wideo_mp4(
         if cancel_flag and cancel_flag():
             raise Exception("Pobieranie anulowane przez użytkownika")
 
-        if d.get('status') == 'downloading':
-            percent_str = d.get('_percent_str', '0%')
+        if d.get("status") == "downloading":
+            percent_str = d.get("_percent_str", "0%")
             try:
-                percent_float = float(percent_str.strip().replace('%', ''))
+                percent_float = float(percent_str.strip().replace("%", ""))
             except (ValueError, AttributeError):
                 percent_float = 0.0
 
@@ -185,7 +195,7 @@ def pobierz_audio_mp3(
     log_func=None,
     proxy=None,
     progress_func=None,
-    cancel_flag=None
+    cancel_flag=None,
 ):
     """
     Pobiera najlepszy strumień audio i konwertuje do MP3 (320 kbps).
@@ -209,7 +219,9 @@ def pobierz_audio_mp3(
     # Sprawdź, czy yt_dlp jest zaimportowane
     global yt_dlp
     if yt_dlp is None:
-        raise RuntimeError("Moduł yt_dlp nie jest zaimportowany. Upewnij się, że instaluj_biblioteki() został wywołany.")
+        raise RuntimeError(
+            "Moduł yt_dlp nie jest zaimportowany. Upewnij się, że instaluj_biblioteki() został wywołany."
+        )
 
     dokladna_sciezka = os.path.join(folder_docelowy, "%(title)s.%(ext)s")
     _log(f" → outtmpl: {dokladna_sciezka}")
@@ -220,10 +232,10 @@ def pobierz_audio_mp3(
         if cancel_flag and cancel_flag():
             raise Exception("Pobieranie anulowane przez użytkownika")
 
-        if d.get('status') == 'downloading':
-            percent_str = d.get('_percent_str', '0%')
+        if d.get("status") == "downloading":
+            percent_str = d.get("_percent_str", "0%")
             try:
-                percent_float = float(percent_str.strip().replace('%', ''))
+                percent_float = float(percent_str.strip().replace("%", ""))
             except (ValueError, AttributeError):
                 percent_float = 0.0
 
@@ -296,7 +308,7 @@ def extract_video_id(url: str):
         r"youtube\.com/watch\?v=([^&]+)",
         r"youtu\.be/([^?]+)",
         r"youtube\.com/embed/([^/]+)",
-        r"youtube\.com/v/([^?]+)"
+        r"youtube\.com/v/([^?]+)",
     ]
 
     for pattern in patterns:

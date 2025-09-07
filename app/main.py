@@ -3,12 +3,13 @@ import os
 import sys
 import time
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStatusBar
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStatusBar
 
-from ui_mainwindow import YouTubeDownloader
-from threads import InstallThread
-from ytdown_core import pobierz_sciezke_ffmpeg
+from app.core.threads import InstallThread
+from app.core.ytdown_core import pobierz_sciezke_ffmpeg
+from app.ui.ui_mainwindow import YouTubeDownloader
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -42,8 +43,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    if os.path.exists("ytdownico.ico"):
-        app.setWindowIcon(QIcon("ytdownico.ico"))
+    if os.path.exists("images/ytdownico.ico"):
+        app.setWindowIcon(QIcon("images/ytdownico.ico"))
 
     window = MainWindow()
     window.setWindowTitle("JustDownIt")

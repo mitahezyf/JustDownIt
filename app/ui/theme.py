@@ -1,6 +1,7 @@
 # theme.py
-from PyQt6.QtGui import QPalette, QColor
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QPalette
+
 
 def apply_dark_theme(app_or_window):
     dark_palette = QPalette()
@@ -18,7 +19,8 @@ def apply_dark_theme(app_or_window):
     dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
 
     app_or_window.setPalette(dark_palette)
-    app_or_window.setStyleSheet("""
+    app_or_window.setStyleSheet(
+        """
         QLineEdit, QTextEdit {
             background-color: #2b2f3a;
             border: 1px solid #3d4351;
@@ -51,4 +53,5 @@ def apply_dark_theme(app_or_window):
             background-color: #61afef;
             border-radius: 3px;
         }
-    """)
+    """
+    )

@@ -1,0 +1,191 @@
+# ======================================================================
+# ADOEPO – pre-commit config (Python 3.12 + Django + SQL + ENV) — z komentarzami
+# Kluczowe założenia:
+# - Działamy na Windows (PyCharm) i w venv; wymuszamy python3.12 tam, gdzie to istotne.
+# - Trzymamy stabilne, jawne wersje hooków (powtarzalność buildów/CI).
+# - Używamy tylko etapu `pre-commit` (stare "commit/push" są przestarzałe).
+# - Lintujemy również `baza_sql.txt` (nasz "kanon" SQL w repo) — patrz sekcja SQLFluff.
+# ======================================================================
+
+# Minimalna wersja narzędzia — unikamy ostrzeżeń o przestarzałych polach.
+minimum_pre_commit_version: "3.7.0"
+
+repos:
+  # --------------------------------------------------------------------
+  # 1) Repo hygiene: szybkie sanity-checki i porządek w whitespace
+  # --------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml               # walidacja plików YAML (np. configi)
+      - id: check-json               # walidacja plików JSON
+      - id: end-of-file-fixer        # pilnuje pojedynczej pustej linii na końcu
+      - id: trailing-whitespace      # usuwa zbędne spacje na końcach linii
+      - id: check-added-large-files  # blokuje przypadkowe wrzucenie wielkich plików
+      - id: mixed-line-ending
+        args: [ --fix=lf ]
+
+  # --------------------------------------------------------------------
+  # 2) Importy: isort przed black (profil black = zgodny styl)
+  # --------------------------------------------------------------------
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        language_version: python3
+        args: ["--profile", "black"]
+
+  # --------------------------------------------------------------------
+  # 3) Formatowanie: black – szybkie, deterministyczne
+  # --------------------------------------------------------------------
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]   # standard w projekcie
+
+  # --------------------------------------------------------------------
+  # 4) Lint: Ruff (z auto-fix) – szybki zamiennik/uzupełnienie flake8+pylint
+  # --------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.11
+    hooks:
+      - id: ruff
+        args: ["--fix"]  # automatyczna korekta części błędów
+
+  # --------------------------------------------------------------------
+  # 5) Django codemods: ułatwia migracje między wersjami (tu: do 5.0)
+  # --------------------------------------------------------------------
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: 1.27.0
+    hooks:
+      - id: django-upgrade
+        args: [--target-version, "5.0"]  # dostosuj do używanej wersji Django
+
+  # --------------------------------------------------------------------
+  # 6) .env sanity: szybka weryfikacja zmiennych środowiskowych
+  #    Uwaga: nie validuje semantyki (np. czy URL działa), tylko format/duplikaty.
+  # --------------------------------------------------------------------
+  - repo: https://github.com/wemake-services/dotenv-linter
+    rev: 0.7.0
+    hooks:
+      - id: dotenv-linter
+        language_version: python3
+        files: ^\.env.*  # sprawdza .env i .env.example
+
+  # --------------------------------------------------------------------
+  # 7) SQL: lint + fix na Postgresie (obejmuje *.sql i baza_sql.txt)
+  #    Wskazówka: utrzymuj reguły w .sqlfluff; tryb fix może modyfikować pliki.
+  # --------------------------------------------------------------------
+#  - repo: https://github.com/sqlfluff/sqlfluff
+#    rev: 3.4.2
+#    hooks:
+#      - id: sqlfluff-lint
+#        args: ["--dialect=postgres"]
+#        files: \.sql$|baza_sql\.txt$
+#      - id: sqlfluff-fix
+#        args: ["--dialect=postgres"]
+#        files: \.sql$|baza_sql\.txt$
+
+  # --------------------------------------------------------------------
+  # 8) Security skan: bandit (aplikacyjny SAST Python)
+  #    Uwaga: nie zamiennik code review; false positive’y wykluczaj komentarzem # nosec.
+  # --------------------------------------------------------------------
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.6
+    hooks:
+      - id: bandit
+        args: ["-lll"]   # pokazuj tylko ostrzeżenia wysokiego poziomu
+        exclude: tests/  # ignoruj katalog testów
+
+  # --------------------------------------------------------------------
+  # 9) Audyt zależności: pip-audit tylko przy zmianie requirements.txt
+  #    Rada: na CI dodaj osobny krok, by wyniki były widoczne jako artefakty.
+  # --------------------------------------------------------------------
+#  - repo: https://github.com/pypa/pip-audit
+#    rev: v2.7.0
+#    hooks:
+#      - id: pip-audit
+#        args: ["-r", "requirements.txt"]
+#        files: ^requirements\.txt$
+
+#TODO: do odkomentowania potem
+#  - repo: local
+#    hooks:
+#      - id: pip-audit
+#        name: pip-audit (local)
+#        entry: pip-audit -r requirements.txt
+#        language: system
+#        pass_filenames: false
+#        files: ^requirements\.txt$
+#        stages: [pre-commit]   # czyli uruchamiasz ręcznie: pre-commit run pip-audit -a
+#
+
+
+#  - repo: local
+#    hooks:
+#      - id: safety
+#        name: safety (deps audit)
+#        entry: safety check -r requirements.txt --full-report
+#        language: system
+#        pass_filenames: false
+#        files: ^requirements\.txt$
+#        stages: [pre-commit]
+
+  # --------------------------------------------------------------------
+  # 10) Hooki lokalne (Windows-friendly, bez przekazywania ścieżek przez pre-commit)
+  #     Uwaga: language: system — używa bieżącego środowiska (np. .venv z PyCharm).
+  # --------------------------------------------------------------------
+  - repo: local
+    hooks:
+      # Sprawdza, czy requirements instalują się poprawnie (wczesne wykrycie literówek/konfliktów).
+      - id: check-requirements
+        name: Check unused/invalid requirements
+        entry: python -c "import subprocess,sys; r=subprocess.run(['pip','install','-r','requirements.txt'],capture_output=True,text=True); print(r.stderr); sys.exit(r.returncode!=0)"
+        language: system
+        pass_filenames: false
+        files: ^requirements\.txt$
+        stages: [pre-commit]
+
+      # Informacyjne: wypisuje listę przestarzałych paczek (nie blokuje commitu).
+      - id: check-outdated-deps
+        name: Check outdated dependencies (info only)
+        entry: python -c "import subprocess,sys; r=subprocess.run(['pip','list','--outdated','--format=json'],capture_output=True,text=True); print(r.stdout); sys.exit(0)"
+        language: system
+        pass_filenames: false
+        files: ^requirements\.txt$
+        verbose: true
+        stages: [pre-commit]
+##TODO naprawić to
+##! DO NAPRAWIENIA WYWALA TO DJANGO I BRAK KONFIGURACJI
+#      - id: pytest
+#        name: pytest
+#        entry: python -m pytest -x --tb=short --ds=adoepo.settings
+#        language: system
+#        types: [ python ]
+#        stages: [ pre-commit ]
+#        pass_filenames: false
+
+#  - repo: local
+#    hooks:
+#      - id: pytest
+#        name: pytest
+#        entry: pytest
+#        language: system
+#        pass_filenames: false
+#        env:
+#          DJANGO_SETTINGS_MODULE: adoepo.settings
+#          PYTHONPATH: app
+
+
+
+# ----------------------------------------------------------------------
+# Wskazówki diagnostyczne:
+# - Jeśli widzisz „deprecated stages” → masz stary config LUB starą wersję pre-commit.
+#   Naprawa: `pre-commit migrate-config` + `pip install -U pre-commit`.
+# - Jeśli `sqlfluff-fix` modyfikuje pliki, przejrzyj diff i zatwierdź świadomie.
+# - Jeśli `pytest` pada — to problem w testach, nie w hooku. Uruchom lokalnie: `pytest -q`.
+# - Windows: uruchamiaj w aktywnym venv, inaczej `language: system` użyje globalnego Pythona.
+# - Aiven Postgres: `--dialect=postgres` jest właściwy; dialekty „ansi”/„postgres_bigquery” są błędne.
+# ----------------------------------------------------------------------
