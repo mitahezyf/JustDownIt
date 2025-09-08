@@ -3,8 +3,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
 
 
+# stosuje ciemny motyw kolorystyczny do aplikacji lub okna
 def apply_dark_theme(app_or_window):
     dark_palette = QPalette()
+
+    # ustawienia kolorow dla roznych elementow interfejsu
     dark_palette.setColor(QPalette.ColorRole.Window, QColor(40, 44, 52))
     dark_palette.setColor(QPalette.ColorRole.WindowText, QColor(171, 178, 191))
     dark_palette.setColor(QPalette.ColorRole.Base, QColor(35, 38, 45))
@@ -18,7 +21,10 @@ def apply_dark_theme(app_or_window):
     dark_palette.setColor(QPalette.ColorRole.Highlight, QColor(97, 175, 239))
     dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
 
+    # przypisuje palete do aplikacji lub okna
     app_or_window.setPalette(dark_palette)
+
+    # dodatkowe style css dla wybranych widgetow
     app_or_window.setStyleSheet(
         """
         QLineEdit, QTextEdit {

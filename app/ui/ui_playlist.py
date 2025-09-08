@@ -1,4 +1,3 @@
-# ui_playlist.py
 import requests
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
@@ -18,6 +17,7 @@ from PyQt6.QtWidgets import (
 from app.ui.theme import apply_dark_theme
 
 
+# formatuje czas trwania w sekundach do postaci mm:ss lub hh:mm:ss
 def fmt_duration(seconds: int | None) -> str:
     if seconds is None:
         return "—"
@@ -30,32 +30,30 @@ def fmt_duration(seconds: int | None) -> str:
     return f"{h:d}:{m:02d}:{s:02d}" if h else f"{m:d}:{s:02d}"
 
 
+# widok playlisty: tabela elementow + akcje globalne
 class PlaylistView(QWidget):
-    """
-    Widok playlisty:
-      - górny panel: ← Wróć, zaznacz/odznacz wszystkie, globalna jakość (w tym „Tylko audio”), Pobierz zaznaczone
-      - tabela: #, Miniaturka, Tytuł, Czas, Jakość (per-wideo), Pobierz?
-    """
 
-    back_requested = pyqtSignal()  # sygnał do powrotu
+    back_requested = pyqtSignal()  # sygnal do powrotu do ekranu glownego
 
     def __init__(self):
         super().__init__()
-        self.entries = []  # [{'id','url','title'}]
-        apply_dark_theme(self)
-        self._build()
+        self.entries = []  # lista elementow playlisty: {'id','url','title'}
+        apply_dark_theme(self)  # stosuje ciemny motyw
+        self._build()  # buduje interfejs
 
+    # tworzy uklad widoku, pasek tytulu, panel globalny i tabele
     def _build(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # Pasek tytuł + przyciski
+        # pasek tytulu z przyciskiem powrotu
         title = QLabel("Playlista – wybierz filmy do pobrania")
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         title.setStyleSheet("color:#61afef;")
 
-        self.btn_back = QPushButton("← Wróć")
+
+        self.btn_back = QPushButton("Wróć")
         self.btn_back.clicked.connect(self.back_requested.emit)
 
         bar = QHBoxLayout()
@@ -65,12 +63,11 @@ class PlaylistView(QWidget):
         bar.addStretch()
         layout.addLayout(bar)
 
-        # Panel globalny
+        # panel globalny: zaznaczanie, jakosc dla wszystkich, start pobierania
         top = QHBoxLayout()
         self.btn_select_all = QPushButton("Zaznacz wszystkie")
         self.btn_unselect_all = QPushButton("Odznacz wszystkie")
         self.global_quality = QComboBox()
-        # Zawsze dostępne: Auto + Tylko audio (MP3)
         self.global_quality.addItem("Auto", userData=None)
         self.global_quality.addItem("Tylko audio (MP3)", userData="bestaudio")
         self.btn_download = QPushButton("Pobierz zaznaczone")
@@ -82,7 +79,7 @@ class PlaylistView(QWidget):
         top.addWidget(self.btn_download)
         layout.addLayout(top)
 
-        # Tabela
+        # tabela elementow playlisty
         self.table = QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels(
             ["#", "Miniaturka", "Tytuł", "Czas", "Jakość", "Pobierz?"]
@@ -99,45 +96,43 @@ class PlaylistView(QWidget):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
 
-        # Akcje panelu globalnego
+        # podpina akcje globalne do przyciskow i comboboxa
         self.btn_select_all.clicked.connect(self.select_all)
         self.btn_unselect_all.clicked.connect(self.unselect_all)
         self.global_quality.currentIndexChanged.connect(self.apply_global_quality)
 
-    # ---------- API wywoływane z ui_mainwindow ----------
+    # api wywolywane z ui_mainwindow
 
+    # resetuje tabele i wypelnia wiersze nowymi elementami playlisty
     def reset_and_fill(self, entries: list[dict]):
-        """Czyści tabelę i wstawia gołe wiersze (Auto + Audio w comboboxie)."""
         self.entries = entries
         self.table.setRowCount(0)
         for i, e in enumerate(entries):
             self.table.insertRow(i)
-            # #
             self.table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
 
-            # miniaturka (placeholder)
+            # placeholder miniaturki do czasu az przyjdzie prawdziwa
             thumb = QLabel("—")
             thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setCellWidget(i, 1, thumb)
 
-            # tytuł
+            # tytul i czas trwania
             self.table.setItem(i, 2, QTableWidgetItem(e.get("title") or "—"))
-
-            # czas
             self.table.setItem(i, 3, QTableWidgetItem("—"))
 
-            # jakość (na start: Auto + Audio)
+            # wybor jakosci dla pojedynczego elementu
             q = QComboBox()
             q.addItem("Auto", userData=None)
             q.addItem("Tylko audio (MP3)", userData="bestaudio")
             self.table.setCellWidget(i, 4, q)
 
-            # checkbox
+            # checkbox do wyboru czy pobierac
             chk = QCheckBox()
             chk.setChecked(True)
             chk.setStyleSheet("margin-left:20px;")
             self.table.setCellWidget(i, 5, chk)
 
+    # aktualizuje pojedynczy wiersz danymi: miniaturka, czas, formaty
     def update_row(
         self,
         row: int,
@@ -146,11 +141,10 @@ class PlaylistView(QWidget):
         duration: int | None,
         formats: list[tuple[str, str]],
     ):
-        """Uzupełnia pojedynczy wiersz (miniaturka, czas, formaty)."""
         if row < 0 or row >= self.table.rowCount():
             return
 
-        # miniaturka
+        # laduje miniaturke jesli url jest dostepny
         if thumb_url:
             try:
                 r = requests.get(thumb_url, timeout=5)
@@ -170,11 +164,11 @@ class PlaylistView(QWidget):
             except Exception:
                 pass
 
-        # czas
+        # ustawia sformatowany czas w kolumnie
         self.table.setItem(row, 3, QTableWidgetItem(fmt_duration(duration)))
 
-        # jakość – Auto + Audio + konkretne opcje
-        combo: QComboBox = self.table.cellWidget(row, 4)  # type: ignore
+        # uzupelnia combobox formatow i stara sie zachowac poprzedni wybor
+        combo: QComboBox = self.table.cellWidget(row, 4)
         if combo:
             current_ud = combo.currentData()
             combo.clear()
@@ -182,31 +176,32 @@ class PlaylistView(QWidget):
             combo.addItem("Tylko audio (MP3)", userData="bestaudio")
             for fmt_id, label in formats:
                 combo.addItem(label, userData=fmt_id)
-            # spróbuj zachować poprzedni wybór
             if current_ud is not None:
                 idx = combo.findData(current_ud)
                 if idx >= 0:
                     combo.setCurrentIndex(idx)
 
-        # uzupełnij globalny combobox o nowe etykiety (unikalne po labelu)
+        # dopelnia globalny combobox o brakujace etykiety
         self._sync_global_quality(formats)
 
-    # ---------- Akcje lokalne / globalne ----------
+    # akcje lokalne / globalne
 
+    # zaznacza checkbox we wszystkich wierszach
     def select_all(self):
         for r in range(self.table.rowCount()):
             chk = self.table.cellWidget(r, 5)
             if chk:
                 chk.setChecked(True)
 
+    # odznacza checkbox we wszystkich wierszach
     def unselect_all(self):
         for r in range(self.table.rowCount()):
             chk = self.table.cellWidget(r, 5)
             if chk:
                 chk.setChecked(False)
 
+    # stosuje wybor globalnej jakosci do wszystkich wierszy
     def apply_global_quality(self):
-        """Ustaw wybraną jakość wszystkim wierszom."""
         ud = self.global_quality.currentData()
         txt = self.global_quality.currentText()
         for r in range(self.table.rowCount()):
@@ -215,7 +210,7 @@ class PlaylistView(QWidget):
                 continue
             combo: QComboBox
             if ud is None:
-                combo.setCurrentIndex(0)  # Auto
+                combo.setCurrentIndex(0)  # auto
             else:
                 i = combo.findData(ud)
                 if i < 0:
@@ -223,12 +218,11 @@ class PlaylistView(QWidget):
                 if i >= 0:
                     combo.setCurrentIndex(i)
 
+    # uzgadnia opcje w globalnym comboboxie z nowo dostepnymi etykietami
     def _sync_global_quality(self, formats: list[tuple[str, str]]):
-        """Dorzuca brakujące opcje do globalnego comboboxa (unikalne po labelu)."""
         have = {
             self.global_quality.itemText(i) for i in range(self.global_quality.count())
         }
-        # Audio jest już domyślnie – dokładamy tylko nowe etykiety wideo
         for _, label in formats:
             if label not in have:
                 self.global_quality.addItem(label)
