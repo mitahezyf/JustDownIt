@@ -1,1 +1,87 @@
+# Pliki wykonywalne
 *.exe
+*.msi
+*.dll
+*.so
+*.dylib
+
+# Dokumentacja markdown (gitignored)
+markdown/
+
+# Python cache i compiled
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+wheels/
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+virtualenv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.cache/
+nosetests.xml
+coverage.xml
+*.egg-info/
+
+# Linting cache
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.dmypy.json
+dmypy.json
+
+# IDE i edytory
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+
+# Logs
+*.log
+logs/
+.secrets.baseline
+
+# FFmpeg (jesli lokalnie pobrany)
+app/ffmpeg/*.exe
+app/ffmpeg/*.dll
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

@@ -1,0 +1,4 @@
+PyQt6>=6.6.0
+yt-dlp>=2023.10.0
+imageio-ffmpeg>=0.4.9
+requests>=2.31.0

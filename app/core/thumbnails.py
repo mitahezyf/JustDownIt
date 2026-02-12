@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Callable, Optional
 
 import requests
 
@@ -9,7 +9,7 @@ from app.utils.url import extract_video_id
 
 # zwraca url miniatury dla podanego linku do wideo
 def get_thumbnail_url(
-    video_url: str, timeout: float = 3.0, log: Optional[callable] = None
+    video_url: str, timeout: float = 3.0, log: Optional[Callable] = None
 ) -> Optional[str]:
 
     # probuje wyciagnac id filmu z url

@@ -52,7 +52,6 @@ class PlaylistView(QWidget):
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         title.setStyleSheet("color:#61afef;")
 
-
         self.btn_back = QPushButton("Wróć")
         self.btn_back.clicked.connect(self.back_requested.emit)
 
