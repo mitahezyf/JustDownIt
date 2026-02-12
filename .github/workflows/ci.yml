@@ -57,8 +57,16 @@ jobs:
 
     - name: Run bandit (security)
       run: |
-        pip install bandit==1.8.6
-        bandit -ll -r app/
+        pip install bandit==1.8.6 bandit[sarif]
+        bandit -ll -r app/ -f sarif -o bandit-report.sarif
+      continue-on-error: true
+
+    - name: Upload Bandit SARIF
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: bandit-report.sarif
+        category: bandit
 
     - name: Run unit tests
       run: |
@@ -78,9 +86,21 @@ jobs:
 
     - name: Archive coverage report
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage-report
         path: htmlcov/
+        retention-days: 30
+
+    - name: Archive test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pytest-results
+        path: |
+          coverage.xml
+          .coverage
+        retention-days: 30
 
   integration-tests:
     name: Integration Tests (Optional)

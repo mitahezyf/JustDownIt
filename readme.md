@@ -1,9 +1,8 @@
 # JustDownIt
 
-![Tests](https://github.com/mitahezyf/JustDownIt/workflows/CI%2FCD%20Pipeline/badge.svg)
-[![codecov](https://codecov.io/gh/mitahezyf/JustDownIt/branch/main/graph/badge.svg)](https://codecov.io/gh/mitahezyf/JustDownIt)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Tests](https://img.shields.io/github/actions/workflow/status/mitahezyf/JustDownIt/ci.yml?style=for-the-badge&logo=github)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge&logo=python)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 YouTube downloader z GUI w PyQt6.
 
