@@ -36,28 +36,28 @@ jobs:
 
     - name: Run isort check
       run: |
-        pip install isort
+        pip install isort==5.13.2
         isort --check-only --profile black app/ tests/
 
     - name: Run black check
       run: |
-        pip install black
+        pip install black==26.1.0
         black --check app/ tests/
 
     - name: Run ruff
       run: |
-        pip install ruff
+        pip install ruff==0.15.0
         ruff check app/ tests/
 
     - name: Run mypy
       run: |
-        pip install mypy types-requests PyQt6-stubs
+        pip install mypy==1.14.1 types-requests PyQt6-stubs
         mypy --ignore-missing-imports app/
       continue-on-error: true
 
     - name: Run bandit (security)
       run: |
-        pip install bandit
+        pip install bandit==1.8.6
         bandit -ll -r app/
 
     - name: Run unit tests

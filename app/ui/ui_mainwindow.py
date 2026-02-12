@@ -168,13 +168,11 @@ class YouTubeDownloader(QWidget):
         self.thumbnail_label = QLabel()
         self.thumbnail_label.setFixedSize(320, 180)
         self.thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.thumbnail_label.setStyleSheet(
-            """
+        self.thumbnail_label.setStyleSheet("""
             background-color: #2b2f3a;
             border: 1px solid #3d4351;
             border-radius: 4px;
-        """
-        )
+        """)
         self.thumbnail_label.setText("Miniaturka pojawi się tutaj po podaniu URL")
         row_opts_thumb.addWidget(
             self.thumbnail_label, alignment=Qt.AlignmentFlag.AlignRight

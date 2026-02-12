@@ -25,8 +25,7 @@ def apply_dark_theme(app_or_window):
     app_or_window.setPalette(dark_palette)
 
     # dodatkowe style css dla wybranych widgetow
-    app_or_window.setStyleSheet(
-        """
+    app_or_window.setStyleSheet("""
         QLineEdit, QTextEdit {
             background-color: #2b2f3a;
             border: 1px solid #3d4351;
@@ -59,5 +58,4 @@ def apply_dark_theme(app_or_window):
             background-color: #61afef;
             border-radius: 3px;
         }
-    """
-    )
+    """)
